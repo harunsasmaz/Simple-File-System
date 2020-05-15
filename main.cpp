@@ -49,9 +49,10 @@ int find_next_file(int starting_position, int end_position){
 int find_first_fit(int required_block){
     int start = 0;
     dtentry_t entry;
+    bool check;
     while(start < NUM_BLOCKS - required_block + 1){
         // check if there is enough contiguous space
-        bool check = seek(start, required_block);
+        check = seek(start, required_block);
         //if yes, then we found starting index
         if(check) break;
         // if not, update the start index to the end of the next file.
@@ -59,7 +60,7 @@ int find_first_fit(int required_block){
         entry = DT[id];
         start = entry.starting_index + entry.size;
     }
-    return start;
+    return check ? start : -1;
 }
 
 // search if there is enough contiguous space in given range.
@@ -108,13 +109,14 @@ int access(int file_id, int offset){
 int extend(int file_id, int extension){
 
     dtentry_t file = DT[file_id];
-    int id = file.file_id, start = file.starting_index, size = file.size;
+    int start = file.starting_index, size = file.size;
     int first = start + size, last = first + extension;
 
     bool check = seek(first, extension);
     if(check){
         for(int i = first; i < last; i++){
-            directory_contents[i] = id;
+            directory_contents[i] = file_id;
+            DT[file_id].size = size + extension;
         }
     } else {
         int new_start = defragment_single(file);
@@ -122,13 +124,36 @@ int extend(int file_id, int extension){
         if(check){
             int new_first = new_start + size, new_last = new_first + extension;
             for(int i = new_first; i < new_last; i++){
-                directory_contents[i] = id;
+                directory_contents[i] = file_id;
+                DT[file_id].size = size + extension;
             }
         } else {
-            cout << "Extension request rejected for file id: " << id << endl;
+            cout << "Extension request rejected for file id: " << file_id << endl;
+            return -1;
+        }
+    }
+    return 0;
+}
+
+int create(int file_id, int size){
+
+    dtentry_t entry;
+    int required_blocks = byte_to_block(size);
+    int starting = find_first_fit(required_blocks);
+    if(starting == -1){
+        defragment_all();
+        starting = find_first_fit(required_blocks);
+        if(starting == -1){
+            cout << "Create rejected: " << file_id << endl;
             return -1;
         }
     }
 
+    entry.file_id = file_id;
+    entry.starting_index = starting;
+    entry.size = required_blocks;
+    DT[file_id] = entry;
+    fill_directory_content(entry);
+    
     return 0;
 }

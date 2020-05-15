@@ -24,7 +24,7 @@ int defragment_single(dtentry_t file);
 
 
 // required functions
-int create_file(int size);
+int create_file(int file_id, int size);
 int access(int file_id, int offset);
 int extend(int file_id, int extension);
 int shrink(int file_id, int shrinking);
