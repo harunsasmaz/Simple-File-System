@@ -1,4 +1,3 @@
-#include "stdc++.h"
 #include "helper.hpp"
 
 using namespace std;
@@ -8,12 +7,12 @@ using namespace std;
 
 int directory_contents[NUM_BLOCKS];
 int available_blocks = NUM_BLOCKS;
+int f_id = 0;
 map<int, dtentry_t> DT;
 
 int main(int argc, char** argv){
 
     fill(directory_contents, directory_contents + NUM_BLOCKS, 0);
-
 
 
 
@@ -72,19 +71,17 @@ bool seek(int starting_position, int required_block){
 }
 
 // shifts a file as much as it can, and returns the new starting index of file.
-int move_file_to_left(dtentry_t* file){
+int defragment_single(dtentry_t file){
 
-    int first = file->starting_index, size = file->size, id = file->file_id;
+    int first = file.starting_index, size = file.size, id = file.file_id;
     int start = first - 1;
 
     while(start != -1 && directory_contents[start] == 0){
-
         for(int i = 0; i < size; i++){
             int temp = directory_contents[start + i];
             directory_contents[start + i] = directory_contents[first + i];
             directory_contents[first + i] = temp;
         }
-        file->starting_index = start;
         first--;
         start--;
     }
@@ -93,10 +90,45 @@ int move_file_to_left(dtentry_t* file){
 }
 
 // for all the files in DT, shift them left. 
-int defragment(){
+int defragment_all(){
 
     for(map<int, dtentry_t>::iterator it = DT.begin(); it != DT.end(); it++){
-        move_file_to_left(it->second);
+        int new_starting = defragment_single(it->second);
+        DT[it->first].starting_index = new_starting;
     }
+    return 0;
+}
+
+int access(int file_id, int offset){
+    dtentry_t file = DT[file_id];
+    if(offset > file.size) return -1;
+    return file.starting_index + offset/BLOCK_SIZE;
+}
+
+int extend(int file_id, int extension){
+
+    dtentry_t file = DT[file_id];
+    int id = file.file_id, start = file.starting_index, size = file.size;
+    int first = start + size, last = first + extension;
+
+    bool check = seek(first, extension);
+    if(check){
+        for(int i = first; i < last; i++){
+            directory_contents[i] = id;
+        }
+    } else {
+        int new_start = defragment_single(file);
+        check = seek(new_start + size, extension);
+        if(check){
+            int new_first = new_start + size, new_last = new_first + extension;
+            for(int i = new_first; i < new_last; i++){
+                directory_contents[i] = id;
+            }
+        } else {
+            cout << "Extension request rejected for file id: " << id << endl;
+            return -1;
+        }
+    }
+
     return 0;
 }

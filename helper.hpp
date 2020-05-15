@@ -1,3 +1,5 @@
+#include "stdc++.h"
+
 // struct for storing data in DT.
 typedef struct DTEntry {
     int file_id;
@@ -16,13 +18,13 @@ int byte_to_block(int bytes);
 // fills the directory content array with the unique id of the file.
 int fill_directory_content(dtentry_t entry);
 // shifts left the all files.
-int defragment();
+int defragment_all();
 // shifts a file to left as much as it can, and returns the new starting index of file.
-int move_file_to_left(dtentry_t file);
+int defragment_single(dtentry_t file);
 
 
 // required functions
-int create_file(int file_id, int size);
+int create_file(int size);
 int access(int file_id, int offset);
 int extend(int file_id, int extension);
 int shrink(int file_id, int shrinking);
