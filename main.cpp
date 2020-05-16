@@ -14,7 +14,7 @@ string input_file;
 int main(int argc, char** argv){
 
     // fill directory contents with zero
-    fill(directory_contents, directory_contents + NUM_BLOCKS, 0);
+    fill(directory_contents, directory_contents + NUM_BLOCKS, -1);
 
     // get input file from user and parse it to obtain block size;
     input_file = argv[1];
@@ -53,6 +53,17 @@ int main(int argc, char** argv){
         }
     }
 
+    for(map<int, dtentry_t>::iterator it = DT.begin(); it != DT.end(); it++){
+        cout << it->second.file_id << " " << it->second.starting_index
+            << " " << it->second.size << endl;
+    }
+
+    for(int i = 0; i < NUM_BLOCKS; i++){
+        cout << directory_contents[i] << " ";
+    }
+
+    cout << endl << available_blocks << endl;
+
     return 0;
 }
 
@@ -74,7 +85,7 @@ int fill_directory_content(dtentry_t entry){
 int find_next_file(int starting_position, int end_position){
     int id = -1;
     for(int i = starting_position; i < end_position; i++){
-        if(directory_contents[i] != 0){
+        if(directory_contents[i] != -1){
             id = directory_contents[i];
             break;
         }
@@ -103,7 +114,7 @@ int find_first_fit(int required_block){
 // search if there is enough contiguous space in given range.
 bool seek(int starting_position, int required_block){
     for(int i = starting_position; i < starting_position + required_block; i++){
-        if(directory_contents[i] != 0) return false;
+        if(directory_contents[i] != -1) return false;
     }
     return true;
 }
@@ -114,7 +125,7 @@ int defragment_single(dtentry_t file){
     int first = file.starting_index, size = file.size, id = file.file_id;
     int start = first - 1;
 
-    while(start != -1 && directory_contents[start] == 0){
+    while(start != -1 && directory_contents[start] == -1){
         for(int i = 0; i < size; i++){
             int temp = directory_contents[start + i];
             directory_contents[start + i] = directory_contents[first + i];
@@ -158,7 +169,7 @@ int extend(int file_id, int extension){
         start = defragment_single(file);
         check = seek(start + size, extension);
         if(!check){
-            cout << "Extension request rejected for file id: " << file_id << endl;
+            //cout << "Extension request rejected for file id: " << file_id << endl;
             return -1;
         }
     }
@@ -188,7 +199,7 @@ int create(int file_id, int size){
         defragment_all();
         starting = find_first_fit(required_blocks);
         if(starting == -1){
-            cout << "Create rejected for file id: " << file_id << endl;
+            //cout << "Create rejected for file id: " << file_id << endl;
             return -1;
         }
     }
@@ -214,7 +225,7 @@ int shrink(int file_id, int shrinking){
     int last = file.starting_index + file.size;
     int first = last - shrinking;
     for(int i = first; i < last; i++){
-        directory_contents[i] = 0;
+        directory_contents[i] = -1;
     }
     DT[file_id].size -= shrinking;
     available_blocks += shrinking;
