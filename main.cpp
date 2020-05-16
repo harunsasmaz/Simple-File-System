@@ -165,3 +165,23 @@ int create(int file_id, int size){
     
     return 0;
 }
+
+int shrink(int file_id, int shrinking){
+
+    dtentry_t file = DT[file_id];
+    if(shrinking >= file.size){
+        cout << "Shrink rejected for file id: " << file_id << endl;
+        return -1;
+    }
+
+    int last = file.starting_index + file.size;
+    int first = last - shrinking;
+    for(int i = first; i < last; i++){
+        directory_contents[i] = 0;
+    }
+    DT[file_id].size -= shrinking;
+    available_blocks += shrinking;
+
+    return 0;
+
+}
