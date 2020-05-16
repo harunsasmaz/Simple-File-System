@@ -2,19 +2,56 @@
 
 using namespace std;
 #define NUM_BLOCKS 32768
-#define BLOCK_SIZE 1024
 
 
+int BLOCK_SIZE = 1024;
 int directory_contents[NUM_BLOCKS];
 int available_blocks = NUM_BLOCKS;
 int f_id = 0;
 map<int, dtentry_t> DT;
 
+string input_file;
 int main(int argc, char** argv){
 
+    // fill directory contents with zero
     fill(directory_contents, directory_contents + NUM_BLOCKS, 0);
 
+    // get input file from user and parse it to obtain block size;
+    input_file = argv[1];
+    stringstream parser(input_file);
+    string block_sz;
+    getline(parser, block_sz, '_');
+    getline(parser, block_sz, '_');
+    BLOCK_SIZE = stoi(block_sz);
 
+    // open input file for reading
+    ifstream commands(input_file);
+    // strings for parsing by ':'
+    string line, operation, id, offset;
+    while(getline(commands, line)){
+        stringstream ss(line);
+        getline(ss, operation, ':');
+        if(operation == "c"){
+            getline(ss, offset, ':');
+            int bytes = stoi(offset);
+            create(f_id, bytes);
+            f_id++;
+        } else {
+            // these fields are common for three operations
+            getline(ss, id, ':');
+            getline(ss, offset, ':');
+            int id_int = stoi(id);
+            int offset_int = stoi(offset);
+
+            if(operation == "a"){
+                access(id_int, offset_int);
+            } else if(operation == "sh"){
+                shrink(id_int, offset_int);
+            } else if(operation == "e"){
+                extend(id_int, offset_int);
+            }
+        }
+    }
 
     return 0;
 }
