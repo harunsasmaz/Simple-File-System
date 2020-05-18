@@ -166,12 +166,11 @@ int extend(int file_id, int extension){
 
     bool check = seek(start + size, extension);
     if(!check){
-        start = defragment_single(file);
-        check = seek(start + size, extension);
-        if(!check){
-            //cout << "Extension request rejected for file id: " << file_id << endl;
-            return -1;
-        }
+        //TODO: Rearrange files so that we can fit this block
+        // 1. defragment all
+        // 2. move file to end
+        // 3. defragment all
+        // 4. extend
     }
 
     int first = start + size, last = first + extension;
