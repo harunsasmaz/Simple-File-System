@@ -148,6 +148,17 @@ int defragment_all(){
     return 0;
 }
 
+int move_a_file(dtentry_t file, int new_start){
+    int start = file.starting_index, size = file.size;
+    for(int i = 0; i < size; i++){
+        int temp = directory_contents[start + i];
+        directory_contents[start + i] = -1;
+        directory_contents[new_start + i] = temp;
+    }
+    DT[file.file_id].starting_index = new_start;
+    return 0;
+}
+
 int access(int file_id, int offset){
     dtentry_t file = DT[file_id];
     if(offset > file.size) return -1;
@@ -166,21 +177,24 @@ int extend(int file_id, int extension){
 
     bool check = seek(start + size, extension);
     if(!check){
-        //TODO: Rearrange files so that we can fit this block
-        // 1. defragment all
-        // 2. move file to end
-        // 3. defragment all
-        // 4. extend
+        defragment_all();
+        int new_start = find_first_fit(size + extension);
+        if(new_start == -1){
+            cout << "Extension request rejected for file id: " << file_id << endl;
+            return -1; 
+        }
+
+        move_a_file(file, new_start);
+        fill(directory_contents + new_start + size, 
+                directory_contents + new_start + size + extension, file_id);
+
+    } else {
+        fill(directory_contents + start + size, 
+                directory_contents + start + size + extension, file_id);
     }
 
-    int first = start + size, last = first + extension;
-    for(int i = first; i < last; i++){
-        directory_contents[i] = file_id;
-    }
-    DT[file_id].starting_index = start;
     DT[file_id].size = size + extension;
     available_blocks -= extension;
-
     return 0;
 }
 
