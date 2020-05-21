@@ -5,10 +5,10 @@ using namespace std;
 
 
 int BLOCK_SIZE = 1024;
-int directory_contents[NUM_BLOCKS];
-int available_blocks = NUM_BLOCKS;
-int f_id = 0;
-map<int, dtentry_t> DT;
+int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
+int available_blocks = NUM_BLOCKS;  // available block count holder
+int f_id = 0;                       // global file id counter.
+map<int, dtentry_t> DT;             // directory table map
 
 string input_file;
 int main(int argc, char** argv){
@@ -53,6 +53,7 @@ int main(int argc, char** argv){
         }
     }
 
+    // ===================== DEBUG ======================= //
     for(map<int, dtentry_t>::iterator it = DT.begin(); it != DT.end(); it++){
         cout << it->second.file_id << " " << it->second.starting_index
             << " " << it->second.size << endl;
@@ -63,22 +64,13 @@ int main(int argc, char** argv){
     }
 
     cout << endl << available_blocks << endl;
-
+    // =================== END DEBUG ====================== //
     return 0;
 }
 
 // conversion from bytes to required amount of blocks.
 int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
-}
-
-// fill the directory content array according to the entry data.
-int fill_directory_content(dtentry_t entry){
-    int start = entry.starting_index;
-    int occupied = entry.size;
-    int id = entry.file_id;
-    fill(directory_contents+start, directory_contents+start+occupied, id);
-    return 0;
 }
 
 // find the id of the next file in given range.
@@ -171,7 +163,7 @@ int access(int file_id, int offset){
     dtentry_t file = DT[file_id];
     // if no file or offset is too high, return -1.
     if(file.size == 0) return -1;
-    if(offset > file.size * BLOCK_SIZE) return -1;
+    if(offset > file.bytes) return -1;
     // return the block index from starting index of file.
     return file.starting_index + offset/BLOCK_SIZE;
 }
@@ -214,14 +206,15 @@ int extend(int file_id, int extension){
     }
     // update the file size and decrease available blocks.
     DT[file_id].size = size + extension;
+    DT[file_id].bytes += extension * BLOCK_SIZE;
     available_blocks -= extension;
     return 0;
 }
 
 // creates a file with given size, on fail returns -1.
-int create(int file_id, int size){
+int create(int file_id, int bytes){
 
-    int required_blocks = byte_to_block(size);
+    int required_blocks = byte_to_block(bytes);
     // if there is no enough space, then reject.
     if(available_blocks < required_blocks){
         cout << "Create rejected for file id: " << file_id << endl;
@@ -245,9 +238,10 @@ int create(int file_id, int size){
     entry.file_id = file_id;
     entry.starting_index = starting;
     entry.size = required_blocks;
+    entry.bytes = bytes;
     DT[file_id] = entry;
     // fill the directory contents and decrease available blocks.
-    fill_directory_content(entry);
+    fill(directory_contents + starting, directory_contents + starting + required_blocks, file_id);
     available_blocks -= required_blocks;
     
     return 0;
@@ -272,6 +266,7 @@ int shrink(int file_id, int shrinking){
     fill(directory_contents + first, directory_contents + last, -1);
     // decrease file size in DT and decrease available blocks.
     DT[file_id].size -= shrinking;
+    DT[file_id].bytes -= shrinking * BLOCK_SIZE;
     available_blocks += shrinking;
 
     return 0;
