@@ -46,7 +46,7 @@ int main(int argc, char** argv){
             if(operation == "a"){
                 access(id_int, offset_int);
             } else if(operation == "sh"){
-                shrink(id_int, offset_int);
+                defragment_all();
             } else if(operation == "e"){
                 extend(id_int, offset_int);
             }
@@ -73,7 +73,7 @@ int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
 }
 
-// find the id of the next file in given range.
+// returns the id of the next file in given range.
 int find_next_file(int starting_position, int end_position){
     int id = -1;
     // iterative search in the given range.
@@ -133,13 +133,17 @@ int defragment_single(dtentry_t file){
 }
 
 // for all the files in DT, shift them left. 
-int defragment_all(){
-    // for each file in DT, shift them left as much as we can.
-    for(map<int, dtentry_t>::iterator it = DT.begin(); it != DT.end(); it++){
-        int new_starting = defragment_single(it->second);
-        DT[it->first].starting_index = new_starting;
+void defragment_all(){
+
+    int start = 0, end = NUM_BLOCKS;
+    dtentry_t file;
+    for(int i = 0; i < DT.size(); i++){
+        int id = find_next_file(start, end);
+        file = DT[id];
+        int new_starting = defragment_single(file);
+        DT[id].starting_index = new_starting;
+        start += file.size;
     }
-    return 0;
 }
 
 // move a file to another place block by block.

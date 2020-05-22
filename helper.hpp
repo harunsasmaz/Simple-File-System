@@ -17,7 +17,7 @@ int find_next_file(int starting_position, int end_position);
 // returns the required amount of blocks for a given size.
 int byte_to_block(int bytes);
 // shifts left the all files.
-int defragment_all();
+void defragment_all();
 // shifts a file to left as much as it can, and returns the new starting index of file.
 int defragment_single(dtentry_t file);
 // moves a file block by block to the given new starting index.
