@@ -44,9 +44,9 @@ int main(int argc, char** argv){
             int offset_int = stoi(offset);
 
             if(operation == "a"){
-                access(id_int, offset_int);
-            } else if(operation == "sh"){
                 defragment_all();
+            } else if(operation == "sh"){
+                shrink(id_int, offset_int);
             } else if(operation == "e"){
                 extend(id_int, offset_int);
             }
@@ -61,9 +61,9 @@ int main(int argc, char** argv){
 
     for(int i = 0; i < NUM_BLOCKS; i++){
         cout << directory_contents[i] << " ";
+        if(i % 100 == 0 && i > 0) cout << endl;
     }
 
-    cout << endl << available_blocks << endl;
     // =================== END DEBUG ====================== //
     return 0;
 }
@@ -150,15 +150,15 @@ void defragment_all(){
 // Here, extra buffer (temp) is used.
 int move_a_file(dtentry_t file, int new_start){
     int start = file.starting_index, size = file.size;
+    int id = file.file_id;
     // carry each block from starting index block by block.
     for(int i = 0; i < size; i++){
         // -1 means that block is freed.
-        int temp = directory_contents[start + i];
         directory_contents[start + i] = -1;
-        directory_contents[new_start + i] = temp;
+        directory_contents[new_start + i] = id;
     }
     // update the new starting index of file.
-    DT[file.file_id].starting_index = new_start;
+    DT[id].starting_index = new_start;
     return 0;
 }
 
@@ -198,8 +198,13 @@ int extend(int file_id, int extension){
             cout << "Extension request rejected for file id: " << file_id << endl;
             return -1; 
         }
-        // if there is, first move the file to there, and then extend.
+        // if there is a hole to fit the file, then:
+        // First, we update the starting index of file to be moved,
+        // because after defragment, starting points are changed.
+        file.starting_index = DT[file_id].starting_index;
+        // Then, move the file to the found hole.
         move_a_file(file, new_start);
+        // And extend the file.
         fill(directory_contents + new_start + size, 
                 directory_contents + new_start + size + extension, file_id);
 
