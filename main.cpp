@@ -3,6 +3,9 @@
 using namespace std;
 #define NUM_BLOCKS 32768
 
+// IMPORTANT NOTICE:
+// Free blocks in the directory contents are represented as -1.
+// Occupied blocks are represented with the IDs of files.
 
 int BLOCK_SIZE = 1024;
 int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
@@ -111,7 +114,7 @@ bool seek(int starting_position, int required_block){
 }
 
 // shifts a file as much as it can, and returns the new starting index of file.
-// Here, extra buffer (temp) is used.
+// Here, extra buffer block (temp) is used.
 int defragment_single(dtentry_t file){
     
     int first = file.starting_index, size = file.size, id = file.file_id;
@@ -137,17 +140,22 @@ void defragment_all(){
 
     int start = 0, end = NUM_BLOCKS;
     dtentry_t file;
+    // we are supposed to defragment DT.size() amount of files.
     for(int i = 0; i < DT.size(); i++){
+        // find the next file to be shifted.
         int id = find_next_file(start, end);
         file = DT[id];
+        // shift that file as much as possible.
         int new_starting = defragment_single(file);
+        // update the starting index of the file.
         DT[id].starting_index = new_starting;
+        // jump after this file to search next file.
         start += file.size;
     }
 }
 
 // move a file to another place block by block.
-// Here, extra buffer (temp) is used.
+// Here, extra buffer block (temp) is used.
 int move_a_file(dtentry_t file, int new_start){
     int start = file.starting_index, size = file.size;
     int id = file.file_id;
