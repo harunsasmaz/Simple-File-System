@@ -19,8 +19,11 @@ string input_file;
 
 int main(int argc, char** argv){
 
-    int c_count, e_count, a_count, sh_count;
-    int c_reject, e_reject, a_reject, sh_reject;
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int c_count = 0, e_count = 0, a_count = 0, sh_count = 0;
+    int c_reject = 0, e_reject = 0, a_reject = 0, sh_reject = 0;
 
     // fill directory contents with -1.
     std::fill(directory_contents, directory_contents + NUM_BLOCKS, -1);
@@ -38,6 +41,8 @@ int main(int argc, char** argv){
     // strings for parsing by ':'
     string line, operation, id, offset;
     int ret_code;
+
+    time_t start = time(NULL);
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
@@ -77,7 +82,13 @@ int main(int argc, char** argv){
             }
         }
     }
+    time_t end = time(NULL);
 
+    double time_taken = double(end - start); 
+    cout << "Time taken by program is : " << fixed 
+         << time_taken << setprecision(5); 
+    cout << " sec " << endl; 
+    
     cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
     cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject << endl;
@@ -106,10 +117,7 @@ int create(int file_id, int bytes){
     // convert bytes to blocks, if not enough available
     // blocks exists, then reject.
     int required_blocks = byte_to_block(bytes);
-    if(required_blocks > available_blocks){
-        cout << "Create rejected for file id: " << file_id << endl;
-        return -1;
-    } 
+    if(required_blocks > available_blocks) return -1;
     
     // Linked list manner, we start with a free cell, which is also starting point.
     // Then, find a next cell, link them and iterate until file size is reached.
@@ -145,22 +153,15 @@ int create(int file_id, int bytes){
 int extend(int file_id, int extension){
 
     // if there is no enough space, then reject.
-    if(extension > available_blocks)
-    {
-        cout << "Extend rejected for file id: " << file_id << endl;
-        return -1;
-    } 
-
+    if(extension > available_blocks) return -1;
+    
     // starting point and size to be able to find tail of file.
     int starting = DT[file_id].starting_index;
     int size = DT[file_id].size;
 
     // if no such file, then reject.
-    if(size == 0){
-        cout << "Extend rejected for file id: " << file_id << endl;
-        return -1;
-    } 
-
+    if(size == 0) return -1;
+    
     // iterate until reaching last block.
     int current = starting;
     for(int i = 1; i < size; i++){
@@ -222,11 +223,7 @@ int shrink(int file_id, int shrinking){
     int starting = DT[file_id].starting_index;
 
     // check if there is no such file or shrinking amount is too high.
-    if(size == 0 || shrinking > size - 1){
-        cout << "Shrink rejected for file id: " << file_id;
-        return -1;
-    } 
-
+    if(size == 0 || shrinking > size - 1) return -1;
     
     // determine the new end of file.
     int new_last = starting;

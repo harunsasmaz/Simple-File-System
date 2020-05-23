@@ -16,8 +16,11 @@ map<int, dtentry_t> DT;             // directory table map
 string input_file;
 int main(int argc, char** argv){
 
-    int c_count, e_count, a_count, sh_count;
-    int c_reject, e_reject, a_reject, sh_reject;
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int c_count = 0, e_count = 0, a_count = 0, sh_count = 0;
+    int c_reject = 0, e_reject = 0, a_reject = 0, sh_reject = 0;
 
     // fill directory contents with -1.
     std::fill(directory_contents, directory_contents + NUM_BLOCKS, -1);
@@ -35,6 +38,8 @@ int main(int argc, char** argv){
     // strings for parsing by ':'
     string line, operation, id, offset;
     int ret_code;
+
+    time_t start = time(NULL);
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
@@ -74,6 +79,12 @@ int main(int argc, char** argv){
             }
         }
     }
+    time_t end = time(NULL);
+
+    double time_taken = double(end - start); 
+    cout << "Time taken by program is : " << fixed 
+         << time_taken << setprecision(5); 
+    cout << " sec " << endl; 
 
     cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
@@ -196,10 +207,8 @@ int access(int file_id, int offset){
 int extend(int file_id, int extension){
 
     // if there is no available blocks at all, reject.
-    if(available_blocks < extension){
-        cout << "Extension request rejected for file id: " << file_id << endl;
-        return -1;
-    }
+    if(available_blocks < extension) return -1;
+
     
     dtentry_t file = DT[file_id];
     // if there is no such file, return -1.
@@ -214,10 +223,8 @@ int extend(int file_id, int extension){
         // after defragment, check for a place to fit the file with extended size
         int new_start = find_first_fit(size + extension);
         // if no place, reject.
-        if(new_start == -1){
-            cout << "Extension request rejected for file id: " << file_id << endl;
-            return -1; 
-        }
+        if(new_start == -1) return -1; 
+    
         // if there is a hole to fit the file, then:
         // First, we update the starting index of file to be moved,
         // because after defragment, starting points are changed.
