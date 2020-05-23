@@ -16,8 +16,11 @@ map<int, dtentry_t> DT;             // directory table map
 string input_file;
 int main(int argc, char** argv){
 
-    // fill directory contents with zero
-    fill(directory_contents, directory_contents + NUM_BLOCKS, -1);
+    int c_count, e_count, a_count, sh_count;
+    int c_reject, e_reject, a_reject, sh_reject;
+
+    // fill directory contents with -1.
+    std::fill(directory_contents, directory_contents + NUM_BLOCKS, -1);
 
     // get input file from user and parse it to obtain block size;
     input_file = argv[1];
@@ -31,14 +34,19 @@ int main(int argc, char** argv){
     ifstream commands(input_file);
     // strings for parsing by ':'
     string line, operation, id, offset;
+    int ret_code;
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
         if(operation == "c"){
+
             getline(ss, offset, ':');
             int bytes = stoi(offset);
-            create(f_id, bytes);
-            f_id++;
+            ret_code = create(f_id, bytes);
+            c_count++;
+            if(ret_code == -1) c_reject++;
+            if(ret_code == 0) f_id++;
+
         } else {
             // these fields are common for three operations
             getline(ss, id, ':');
@@ -47,27 +55,31 @@ int main(int argc, char** argv){
             int offset_int = stoi(offset);
 
             if(operation == "a"){
-                defragment_all();
+
+                ret_code = access(id_int, offset_int);
+                a_count++;
+                if(ret_code == -1) a_reject++;
+
             } else if(operation == "sh"){
-                shrink(id_int, offset_int);
+
+                ret_code = shrink(id_int, offset_int);
+                sh_count++;
+                if(ret_code == -1) sh_reject++;
+
             } else if(operation == "e"){
-                extend(id_int, offset_int);
+
+                ret_code = extend(id_int, offset_int);
+                e_count++;
+                if(ret_code == -1) e_reject++;
             }
         }
     }
 
-    // ===================== DEBUG ======================= //
-    for(map<int, dtentry_t>::iterator it = DT.begin(); it != DT.end(); it++){
-        cout << it->second.file_id << " " << it->second.starting_index
-            << " " << it->second.size << endl;
-    }
+    cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
+    cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
+    cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject << endl;
+    cout << "Total access: " << a_count << "\tReject access: " << a_reject << endl;
 
-    for(int i = 0; i < NUM_BLOCKS; i++){
-        cout << directory_contents[i] << " ";
-        if(i % 100 == 0 && i > 0) cout << endl;
-    }
-
-    // =================== END DEBUG ====================== //
     return 0;
 }
 
@@ -233,10 +245,8 @@ int create(int file_id, int bytes){
 
     int required_blocks = byte_to_block(bytes);
     // if there is no enough space, then reject.
-    if(available_blocks < required_blocks){
-        cout << "Create rejected for file id: " << file_id << endl;
-        return -1;
-    } 
+    if(available_blocks < required_blocks) return -1;
+    
 
     int starting = find_first_fit(required_blocks);
     // if there is no contiguous place to fit, try again after defragmentation.
@@ -245,10 +255,7 @@ int create(int file_id, int bytes){
         // try again to find a place to fit in.
         starting = find_first_fit(required_blocks);
         // if no space to fit, then reject.
-        if(starting == -1){
-            cout << "Create rejected for file id: " << file_id << endl;
-            return -1;
-        }
+        if(starting == -1) return -1;
     }
     // if we have space to fit, create a file and add it to DT.
     dtentry_t entry;
@@ -272,15 +279,13 @@ int shrink(int file_id, int shrinking){
     if(file.size == 0) return -1;
 
     // if offset is more than file size, reject.
-    if(shrinking >= file.size){
-        cout << "Shrink rejected for file id: " << file_id << endl;
-        return -1;
-    }
+    if(shrinking >= file.size) return -1;
 
     int last = file.starting_index + file.size;
     int first = last - shrinking;
     // otherwise free the space in directory contents.
     fill(directory_contents + first, directory_contents + last, -1);
+    
     // decrease file size in DT and decrease available blocks.
     DT[file_id].size -= shrinking;
     DT[file_id].bytes -= shrinking * BLOCK_SIZE;
