@@ -36,6 +36,10 @@ int main(int argc, char** argv){
     getline(parser, block_sz, '_');
     BLOCK_SIZE = stoi(block_sz);
 
+    FAT_sz = (NUM_BLOCKS * 4) / BLOCK_SIZE;
+    std::fill(directory_contents, directory_contents + FAT_sz, FAT_VALUE);
+    available_blocks -= FAT_sz;
+
     // open input file for reading
     ifstream commands(input_file);
     // strings for parsing by ':'
@@ -93,6 +97,8 @@ int main(int argc, char** argv){
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
     cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject << endl;
     cout << "Total access: " << a_count << "\tReject access: " << a_reject << endl;
+
+    cout << "Available blocks: " << available_blocks << endl;
 
     return 0;
 }

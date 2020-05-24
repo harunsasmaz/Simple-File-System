@@ -2,6 +2,7 @@
 
 using namespace std;
 #define NUM_BLOCKS 32768
+#define FREE -1
 
 // IMPORTANT NOTICE:
 // Free blocks in the directory contents are represented as -1.
@@ -90,6 +91,8 @@ int main(int argc, char** argv){
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
     cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject << endl;
     cout << "Total access: " << a_count << "\tReject access: " << a_reject << endl;
+
+    cout << "Available blocks: " << available_blocks << endl;
 
     return 0;
 }
