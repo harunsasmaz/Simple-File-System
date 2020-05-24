@@ -212,7 +212,6 @@ int extend(int file_id, int extension){
     // if there is no available blocks at all, reject.
     if(available_blocks < extension) return -1;
 
-    
     dtentry_t file = DT[file_id];
     // if there is no such file, return -1.
     if(file.size == 0) return -1;
@@ -222,21 +221,30 @@ int extend(int file_id, int extension){
     bool check = seek(start + size, extension);
     // if not, first defragment them all and try again.
     if(!check){
-        defragment_all();
-        // after defragment, check for a place to fit the file with extended size
+
         int new_start = find_first_fit(size + extension);
-        // if no place, reject.
-        if(new_start == -1) return -1; 
-    
-        // if there is a hole to fit the file, then:
-        // First, we update the starting index of file to be moved,
-        // because after defragment, starting points are changed.
-        file.starting_index = DT[file_id].starting_index;
-        // Then, move the file to the found hole.
-        move_a_file(file, new_start);
-        // And extend the file.
+
+        if(new_start == -1){
+            defragment_all();
+            file.starting_index = DT[file_id].starting_index;
+            new_start = NUM_BLOCKS - available_blocks;
+
+            int moving = max(size, extension);
+            if(available_blocks < moving) return -1;
+
+            move_a_file(file, new_start);
+
+            if(new_start + size >= NUM_BLOCKS - extension)
+                defragment_all();
+            
+            new_start = DT[file_id].starting_index;
+
+        } else {
+            move_a_file(file, new_start);
+        }
+
         fill(directory_contents + new_start + size, 
-                directory_contents + new_start + size + extension, file_id);
+            directory_contents + new_start + size + extension, file_id);
 
     } else {
         // if the contigous space is free, then extend directly.
@@ -257,15 +265,12 @@ int create(int file_id, int bytes){
     // if there is no enough space, then reject.
     if(available_blocks < required_blocks) return -1;
     
-
     int starting = find_first_fit(required_blocks);
     // if there is no contiguous place to fit, try again after defragmentation.
     if(starting == -1){
         defragment_all();
         // try again to find a place to fit in.
-        starting = find_first_fit(required_blocks);
-        // if no space to fit, then reject.
-        if(starting == -1) return -1;
+        starting = NUM_BLOCKS - available_blocks;
     }
     // if we have space to fit, create a file and add it to DT.
     dtentry_t entry;
