@@ -12,4 +12,4 @@ linked:
 	$(CXX) $(CXXFLAGS) -o $(OBJ2) linked.cpp
 
 clean:
-	rm -f *.o results.txt $(OBJ1) $(OBJ2)
+	rm -f *.o results.log $(OBJ1) $(OBJ2)

@@ -41,8 +41,6 @@ int main(int argc, char** argv){
     std::fill(directory_contents, directory_contents + FAT_sz, FAT_VALUE);
     available_blocks -= FAT_sz;
 
-    cout << "Here: " << FAT_sz << endl;
-
     // open input file for reading
     ifstream commands(input_file);
     // strings for parsing by ':'
