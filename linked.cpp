@@ -36,6 +36,7 @@ int main(int argc, char** argv){
     getline(parser, block_sz, '_');
     BLOCK_SIZE = stoi(block_sz);
 
+    // store the FAT in directory contents.
     FAT_sz = (NUM_BLOCKS * 4) / BLOCK_SIZE;
     std::fill(directory_contents, directory_contents + FAT_sz, FAT_VALUE);
     available_blocks -= FAT_sz;
@@ -46,7 +47,7 @@ int main(int argc, char** argv){
     string line, operation, id, offset;
     int ret_code;
 
-    time_t start = time(NULL);
+    double start = time(NULL);
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
@@ -86,11 +87,11 @@ int main(int argc, char** argv){
             }
         }
     }
-    time_t end = time(NULL);
+    double end = time(NULL);
 
     double time_taken = double(end - start); 
     cout << "Time taken by program is : " << fixed 
-         << time_taken << setprecision(5); 
+         << time_taken << setprecision(3); 
     cout << " sec " << endl; 
     
     cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
@@ -108,7 +109,7 @@ int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
 }
 
-int find_free_cell(){
+int find_free_block(){
 
     int ind = FAT_sz;
     while(ind < NUM_BLOCKS){
@@ -128,11 +129,11 @@ int create(int file_id, int bytes){
     // Linked list manner, we start with a free cell, which is also starting point.
     // Then, find a next cell, link them and iterate until file size is reached.
 
-    int next, current = find_free_cell(), starting = current;
+    int next, current = find_free_block(), starting = current;
     directory_contents[current] = file_id;
     for(int i = 1; i < required_blocks; i++){
         // find next cell
-        next = find_free_cell();
+        next = find_free_block();
         // link current to next
         FAT[current] = next;
         // next points to special end of file
@@ -178,7 +179,7 @@ int extend(int file_id, int extension){
     int next;
     for(int i = 0; i < extension; i++){
         // find a new cell
-        next = find_free_cell();
+        next = find_free_block();
         // link the current pointer to next.
         FAT[current] = next;
         // point next pointer to end of file.

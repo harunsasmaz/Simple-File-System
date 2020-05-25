@@ -8,6 +8,9 @@ typedef struct DTEntry {
     int bytes;
 }dtentry_t;
 
+
+// ============== CONTIGUOUS ALLOCATION HELPER FUNCTIONS ================== //
+
 // returns the first block index of the first fit in directory content.
 int find_first_fit(int required_block);
 // checks if the contiguous space is enough to place a file
@@ -24,7 +27,13 @@ int defragment_single(dtentry_t file);
 int move_a_file(dtentry_t file, int new_start);
 
 
-// required functions
+// ====================== LINKED ALLOCATION HELPER FUNCTIONS ================ //
+
+// finds a free block to be linked.
+int find_free_block();
+
+
+// ===================== DESIRED FUNCTIONALITIES ==================== //
 int create(int file_id, int bytes);
 int access(int file_id, int offset);
 int extend(int file_id, int extension);
