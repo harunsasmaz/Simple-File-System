@@ -12,7 +12,7 @@ int BLOCK_SIZE = 1024;
 int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
 int available_blocks = NUM_BLOCKS;  // available block count holder
 int f_id = 0;                       // global file id counter.
-map<int, dtentry_t> DT;             // directory table map
+unordered_map<int, dtentry_t> DT;             // directory table map
 
 string input_file;
 int main(int argc, char** argv){
@@ -40,7 +40,7 @@ int main(int argc, char** argv){
     string line, operation, id, offset;
     int ret_code;
 
-    time_t start = time(NULL);
+    auto start = chrono::steady_clock::now();
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
@@ -80,12 +80,12 @@ int main(int argc, char** argv){
             }
         }
     }
-    time_t end = time(NULL);
+    auto end = chrono::steady_clock::now();
 
-    double time_taken = double(end - start); 
+     
     cout << "Time taken by program is : " << fixed 
-         << time_taken << setprecision(5); 
-    cout << " sec " << endl; 
+         << chrono::duration_cast<chrono::milliseconds>(end - start).count() << setprecision(5); 
+    cout << " milissec " << endl; 
 
     cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;

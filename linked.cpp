@@ -14,7 +14,7 @@ int f_id = 0;
 int FAT[NUM_BLOCKS];
 int FAT_sz;
 
-map<int, dtentry_t> DT;
+unordered_map<int, dtentry_t> DT;
 string input_file;
 
 int main(int argc, char** argv){
@@ -37,9 +37,11 @@ int main(int argc, char** argv){
     BLOCK_SIZE = stoi(block_sz);
 
     // store the FAT in directory contents.
-    FAT_sz = (NUM_BLOCKS * 4) / BLOCK_SIZE;
+    FAT_sz = ceil((double)NUM_BLOCKS / (BLOCK_SIZE / 4 + 1));
     std::fill(directory_contents, directory_contents + FAT_sz, FAT_VALUE);
     available_blocks -= FAT_sz;
+
+    cout << "Here: " << FAT_sz << endl;
 
     // open input file for reading
     ifstream commands(input_file);
@@ -47,7 +49,7 @@ int main(int argc, char** argv){
     string line, operation, id, offset;
     int ret_code;
 
-    double start = time(NULL);
+    auto start = chrono::steady_clock::now();
     while(getline(commands, line)){
         stringstream ss(line);
         getline(ss, operation, ':');
@@ -87,12 +89,11 @@ int main(int argc, char** argv){
             }
         }
     }
-    double end = time(NULL);
+    auto end = chrono::steady_clock::now();
 
-    double time_taken = double(end - start); 
     cout << "Time taken by program is : " << fixed 
-         << time_taken << setprecision(3); 
-    cout << " sec " << endl; 
+         << chrono::duration_cast<chrono::milliseconds>(end - start).count() << setprecision(2); 
+    cout << " milisec " << endl; 
     
     cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
     cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;

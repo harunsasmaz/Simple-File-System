@@ -1,6 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++14
-CXXFLAGS +=
+CXXFLAGS := -std=c++11
 OBJ1 := contiguous
 OBJ2 := linked
 

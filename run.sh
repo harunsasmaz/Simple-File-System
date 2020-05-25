@@ -1,5 +1,6 @@
-make
-
+make >> results.txt
+echo "" >>results.txt
+echo "File: $1\n" >>results.txt
 echo "Contiguous allocation: " >>results.txt
 echo "" >>results.txt
 
