@@ -27,11 +27,6 @@ int defragment_single(dtentry_t file);
 int move_a_file(dtentry_t file, int new_start);
 
 
-// ====================== LINKED ALLOCATION HELPER FUNCTIONS ================ //
-
-// finds a free block to be linked.
-int find_free_block();
-
 
 // ===================== DESIRED FUNCTIONALITIES ==================== //
 int create(int file_id, int bytes);

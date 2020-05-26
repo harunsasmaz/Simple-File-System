@@ -105,16 +105,6 @@ int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
 }
 
-int find_free_block(){
-
-    int ind = FAT_sz;
-    while(ind < NUM_BLOCKS){
-        if(directory_contents[ind] == -1) break;
-        ind++;
-    }
-    return ind;
-}
-
 int create(int file_id, int bytes){
 
     // convert bytes to blocks, if not enough available
@@ -125,19 +115,26 @@ int create(int file_id, int bytes){
     // Linked list manner, we start with a free cell, which is also starting point.
     // Then, find a next cell, link them and iterate until file size is reached.
 
-    int next, current = find_free_block(), starting = current;
-    directory_contents[current] = file_id;
-    for(int i = 1; i < required_blocks; i++){
-        // find next cell
-        next = find_free_block();
-        // link current to next
-        FAT[current] = next;
-        // next points to special end of file
-        FAT[next] = FILE_END;
-        // update pointers.
-        current = next;
-        // update directory contents.
-        directory_contents[current] = file_id;
+    int starting, counter = 0, ind = FAT_sz, current;
+    while(ind < NUM_BLOCKS)
+    {
+        if(directory_contents[ind] == -1){
+            if(counter == 0){
+                starting = ind;
+            } else {
+                FAT[current] = ind;
+            }
+            current = ind;
+            counter++;
+            directory_contents[current] = file_id;
+        }
+
+        if(counter == required_blocks){
+            FAT[current] = FILE_END;
+            break;
+        }
+
+        ind++;
     }
 
     // allocate new entry in Directory Table
@@ -172,18 +169,22 @@ int extend(int file_id, int extension){
     }
 
     // find new free cells to extend the file.
-    int next;
-    for(int i = 0; i < extension; i++){
-        // find a new cell
-        next = find_free_block();
-        // link the current pointer to next.
-        FAT[current] = next;
-        // point next pointer to end of file.
-        FAT[next] = FILE_END;
-        // update pointers.
-        current = next;
-        // update directory contents.
-        directory_contents[current] = file_id;
+    int counter = 0, ind = FAT_sz;
+    while(ind < NUM_BLOCKS)
+    {
+        if(directory_contents[ind] == -1){
+            FAT[current] = ind;
+            current = ind;
+            counter++;
+            directory_contents[current] = file_id;
+        }
+
+        if(counter == extension){
+            FAT[current] = FILE_END;
+            break;
+        }
+
+        ind++;
     }
 
     // update related information of the file.

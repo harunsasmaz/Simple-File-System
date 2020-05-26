@@ -136,45 +136,26 @@ bool seek(int starting_position, int required_block){
     return true;
 }
 
-// shifts a file as much as it can, and returns the new starting index of file.
-// Here, extra buffer block (temp) is used.
-int defragment_single(dtentry_t file){
-    
-    int first = file.starting_index, size = file.size, id = file.file_id;
-    int start = first - 1;
-    // shift as much as it is possible
-    while(start != -1 && directory_contents[start] == -1){
-        // we shift a file block by block, so swap every block in the file
-        // one by one until it is shifted left by 1.
-        for(int i = 0; i < size; i++){
-            int temp = directory_contents[start + i];
-            directory_contents[start + i] = directory_contents[first + i];
-            directory_contents[first + i] = temp;
-        }
-        // shift heads left by 1
-        first--;
-        start--;
-    }
-    return first;
-}
-
 // for all the files in DT, shift them left. 
 void defragment_all(){
 
-    int start = 0, end = NUM_BLOCKS;
-    dtentry_t file;
-    // we are supposed to defragment DT.size() amount of files.
-    for(int i = 0; i < DT.size(); i++){
-        // find the next file to be shifted.
-        int id = find_next_file(start, end);
-        file = DT[id];
-        // shift that file as much as possible.
-        int new_starting = defragment_single(file);
-        // update the starting index of the file.
-        DT[id].starting_index = new_starting;
-        // jump after this file to search next file.
-        start += file.size;
+    dtentry_t entry;
+    int count = DT.size(), head = 0, ind = 0, id;
+    while(ind < NUM_BLOCKS){
+
+        if((id = directory_contents[ind]) != -1){
+            entry = DT[id];
+            move_a_file(entry, head);
+            head += entry.size;
+            ind += entry.size;
+            count--;
+        } else {
+            ind++;
+        }
+
+        if(count == 0) break;
     }
+
 }
 
 // move a file to another place block by block.
