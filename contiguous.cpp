@@ -99,33 +99,24 @@ int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
 }
 
-// returns the id of the next file in given range.
-int find_next_file(int starting_position, int end_position){
-    int id = -1;
-    // iterative search in the given range.
-    for(int i = starting_position; i < end_position; i++){
-        if(directory_contents[i] != -1){
-            id = directory_contents[i];
-            break;
-        }
-    }
-    return id;
-}
-
 // search a space to allocate a file
 int find_first_fit(int required_block){
-    int start = 0;
-    bool check;
-    while(start < NUM_BLOCKS - required_block + 1){
-        // check if there is enough contiguous space
-        check = seek(start, required_block);
-        //if yes, then we found starting index
-        if(check) break;
-        // if not, update the start index of this file, to the end of the next file.
-        int id = find_next_file(start, start + required_block);
-        start = DT[id].starting_index + DT[id].size;
+   
+    int head = 0, ind = 0, counter = 0, val;
+    while(ind < NUM_BLOCKS){
+
+        if(directory_contents[ind] == -1){
+            counter++;
+        } else {
+            val = directory_contents[ind];
+            head = ind += DT[val].size;
+            counter = 0;
+        }
+
+        if(counter == required_block) return head;
+        ind++;
     }
-    return check ? start : -1;
+    return -1;
 }
 
 // search if there is enough contiguous space in given range.
