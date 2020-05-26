@@ -13,10 +13,12 @@ int f_id = 0;
 
 int FAT[NUM_BLOCKS];
 int FAT_sz;
-
 map<int, dtentry_t> DT;
-string input_file;
 
+// total times for each operation.
+int create_t, extend_t, shrink_t, access_t;
+
+string input_file;
 int main(int argc, char** argv){
 
     int c_count = 0, e_count = 0, a_count = 0, sh_count = 0;
@@ -86,16 +88,18 @@ int main(int argc, char** argv){
     }
     auto end = chrono::steady_clock::now();
 
-    cout << "Time taken by program is : " << fixed 
-         << chrono::duration_cast<chrono::milliseconds>(end - start).count() << setprecision(2); 
+    int64_t elapsed = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+    cout << "Time taken by program is : " << fixed << elapsed << setprecision(5); 
     cout << " milisec " << endl; 
     
-    cout << "Total create: " << c_count << "\tReject create: " << c_reject << endl;
-    cout << "Total extend: " << e_count << "\tReject extend: " << e_reject << endl;
-    cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject << endl;
-    cout << "Total access: " << a_count << "\tReject access: " << a_reject << endl;
-
-    cout << "Available blocks: " << available_blocks << endl;
+    cout << "Total create: " << c_count << "\tReject create: " << c_reject 
+        << "\tAverage time: " << (double)create_t/c_count/1000 << endl;
+    cout << "Total extend: " << e_count << "\tReject extend: " << e_reject 
+        << "\tAverage time: " << (double)extend_t/e_count/1000 << endl;
+    cout << "Total shrink: " << sh_count << "\tReject shrink: " << sh_reject 
+        << "\tAverage time: " << (double)shrink_t/sh_count/1000 << endl;
+    cout << "Total access: " << a_count << "\tReject access: " << a_reject 
+        << "\tAverage time: " << (double)access_t/a_count/1000 << endl;
 
     return 0;
 }
@@ -107,6 +111,8 @@ int byte_to_block(int bytes){
 
 int create(int file_id, int bytes){
 
+    auto start = chrono::steady_clock::now();
+
     // convert bytes to blocks, if not enough available
     // blocks exists, then reject.
     int required_blocks = byte_to_block(bytes);
@@ -117,23 +123,29 @@ int create(int file_id, int bytes){
 
     int starting, counter = 0, ind = FAT_sz, current;
     while(ind < NUM_BLOCKS)
-    {
+    {   
+        // if a free block is found
         if(directory_contents[ind] == -1){
+            // if counter is 0, then it is the starting index of file.
             if(counter == 0){
                 starting = ind;
+            // if not 0, then we link the previous block to this index.
             } else {
                 FAT[current] = ind;
             }
+            // update the current pointer to new end of file.
             current = ind;
+            // increase counter
             counter++;
+            // update directory contents with file data.
             directory_contents[current] = file_id;
         }
-
+        // if we fill enough blocks, then point the last block to EOF
         if(counter == required_blocks){
             FAT[current] = FILE_END;
             break;
         }
-
+        // continue with next block.
         ind++;
     }
 
@@ -147,10 +159,16 @@ int create(int file_id, int bytes){
 
     // decrease available blocks.
     available_blocks -= required_blocks;
+
+    auto end = chrono::steady_clock::now();
+    create_t += chrono::duration_cast<chrono::microseconds>(end - start).count();
+
     return 0;
 }
 
 int extend(int file_id, int extension){
+
+    auto start = chrono::steady_clock::now();
 
     // if there is no enough space, then reject.
     if(extension > available_blocks) return -1;
@@ -171,19 +189,25 @@ int extend(int file_id, int extension){
     // find new free cells to extend the file.
     int counter = 0, ind = FAT_sz;
     while(ind < NUM_BLOCKS)
-    {
+    {   
+        // if the block is free
         if(directory_contents[ind] == -1){
+            // link the last block of file to this
             FAT[current] = ind;
+            // ind becomes the new last block
             current = ind;
+            // count the number of extended blocks
             counter++;
+            // update directory contents with extended file.
             directory_contents[current] = file_id;
         }
-
+        // if enough blocks are extended, then link last block
+        // to EOF and return.
         if(counter == extension){
             FAT[current] = FILE_END;
             break;
         }
-
+        // increase index.
         ind++;
     }
 
@@ -193,10 +217,16 @@ int extend(int file_id, int extension){
 
     // decrease available blocks.
     available_blocks -= extension;
+
+    auto end = chrono::steady_clock::now();
+    extend_t += chrono::duration_cast<chrono::microseconds>(end - start).count();
+
     return 0;
 }
 
 int access(int file_id, int offset){
+
+    auto start = chrono::steady_clock::now();
 
     // calculate how many blocks to iterate.
     int block_ind = byte_to_block(offset);
@@ -217,10 +247,15 @@ int access(int file_id, int offset){
         current = FAT[current];
     }
 
+    auto end = chrono::steady_clock::now();
+    access_t += chrono::duration_cast<chrono::microseconds>(end - start).count();
+
     return current;
 }
 
 int shrink(int file_id, int shrinking){
+
+    auto start = chrono::steady_clock::now();
 
     // necessary file information
     int size = DT[file_id].size;
@@ -252,5 +287,8 @@ int shrink(int file_id, int shrinking){
     // increase free blocks.
     available_blocks += shrinking;
 
+    auto end = chrono::steady_clock::now();
+    shrink_t += chrono::duration_cast<chrono::microseconds>(end - start).count();
+    
     return 0;
 }
