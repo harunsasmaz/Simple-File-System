@@ -12,13 +12,10 @@ int BLOCK_SIZE = 1024;
 int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
 int available_blocks = NUM_BLOCKS;  // available block count holder
 int f_id = 0;                       // global file id counter.
-unordered_map<int, dtentry_t> DT;             // directory table map
+map<int, dtentry_t> DT;             // directory table map
 
 string input_file;
 int main(int argc, char** argv){
-
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
 
     int c_count = 0, e_count = 0, a_count = 0, sh_count = 0;
     int c_reject = 0, e_reject = 0, a_reject = 0, sh_reject = 0;
@@ -219,30 +216,33 @@ int extend(int file_id, int extension){
     int start = file.starting_index, size = file.size;
     // first check the contiguous blocks whether they are free or not.
     bool check = seek(start + size, extension);
-    // if not, first defragment them all and try again.
+    // if not;
     if(!check){
-
+        // first search for a space that size + extension fits
         int new_start = find_first_fit(size + extension);
-
+        // if there is no space;
         if(new_start == -1){
+            // defragment files and move the file.
             defragment_all();
             file.starting_index = DT[file_id].starting_index;
             new_start = NUM_BLOCKS - available_blocks;
-
+            // in case where we cannot move the file to end, then reject.
             int moving = max(size, extension);
             if(available_blocks < moving) return -1;
-
+            // if there is enough space to move the file, then move
             move_a_file(file, new_start);
-
+            // if the contiguous space after file is smaller than extension
+            // defragment again
             if(new_start + size >= NUM_BLOCKS - extension)
                 defragment_all();
-            
+            // update the new starting index of file in case defragment occurs.
             new_start = DT[file_id].starting_index;
 
         } else {
+            // if there is enough space to fit size + extension, directly move the file
             move_a_file(file, new_start);
         }
-
+        // extend the file.
         fill(directory_contents + new_start + size, 
             directory_contents + new_start + size + extension, file_id);
 

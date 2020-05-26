@@ -14,13 +14,10 @@ int f_id = 0;
 int FAT[NUM_BLOCKS];
 int FAT_sz;
 
-unordered_map<int, dtentry_t> DT;
+map<int, dtentry_t> DT;
 string input_file;
 
 int main(int argc, char** argv){
-
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
 
     int c_count = 0, e_count = 0, a_count = 0, sh_count = 0;
     int c_reject = 0, e_reject = 0, a_reject = 0, sh_reject = 0;
