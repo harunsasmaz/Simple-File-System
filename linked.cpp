@@ -6,6 +6,12 @@ using namespace std;
 #define FAT_VALUE INT_MIN
 #define FREE -1
 
+// IMPORTANT NOTICE:
+// Free blocks in the directory contents are represented as -1.
+// Occupied blocks are represented with the IDs of files.
+// FAT blocks are occupied at the beginning and represented with FAT_VALUE
+// Operations do not rely on the values in directory contents.
+
 int BLOCK_SIZE = 1024;              // default block size is 1024
 int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
 int available_blocks = NUM_BLOCKS;  // available block count holder
@@ -153,8 +159,7 @@ int create(int file_id, int bytes){
     dtentry_t entry;
     entry.file_id = file_id;
     entry.starting_index = starting;
-    entry.size = required_blocks;
-    entry.bytes = bytes;
+    entry.size = bytes;
     DT[file_id] = entry;
 
     // decrease available blocks.
@@ -175,7 +180,8 @@ int extend(int file_id, int extension){
     
     // starting point and size to be able to find tail of file.
     int starting = DT[file_id].starting_index;
-    int size = DT[file_id].size;
+    int bytes = DT[file_id].size;
+    int size = byte_to_block(bytes);
 
     // if no such file, then reject.
     if(size == 0) return -1;
@@ -212,8 +218,7 @@ int extend(int file_id, int extension){
     }
 
     // update related information of the file.
-    DT[file_id].size += extension;
-    DT[file_id].bytes += extension * BLOCK_SIZE;
+    DT[file_id].size += extension * BLOCK_SIZE;
 
     // decrease available blocks.
     available_blocks -= extension;
@@ -233,7 +238,7 @@ int access(int file_id, int offset){
 
     // needed file information.
     int starting = DT[file_id].starting_index;
-    int bytes = DT[file_id].bytes;
+    int bytes = DT[file_id].size;
 
     // if no such file, reject.
     if(bytes == 0) return -1;
@@ -258,7 +263,8 @@ int shrink(int file_id, int shrinking){
     auto start = chrono::steady_clock::now();
 
     // necessary file information
-    int size = DT[file_id].size;
+    int bytes = DT[file_id].size;
+    int size = byte_to_block(bytes);
     int starting = DT[file_id].starting_index;
 
     // check if there is no such file or shrinking amount is too high.
@@ -281,14 +287,13 @@ int shrink(int file_id, int shrinking){
     FAT[new_last] = FILE_END;
 
     // update file data in Directory Table.
-    DT[file_id].size -= shrinking;
-    DT[file_id].bytes -= shrinking * BLOCK_SIZE;
+    DT[file_id].size -= shrinking * BLOCK_SIZE;
 
     // increase free blocks.
     available_blocks += shrinking;
 
     auto end = chrono::steady_clock::now();
     shrink_t += chrono::duration_cast<chrono::microseconds>(end - start).count();
-    
+
     return 0;
 }

@@ -7,6 +7,7 @@ using namespace std;
 // IMPORTANT NOTICE:
 // Free blocks in the directory contents are represented as -1.
 // Occupied blocks are represented with the IDs of files.
+// Operations do not rely on the values in directory contents.
 
 int BLOCK_SIZE = 1024;
 int directory_contents[NUM_BLOCKS]; // file directory, -1 represents free blocks.
@@ -82,7 +83,6 @@ int main(int argc, char** argv){
     }
     auto end = chrono::steady_clock::now();
 
-     
     int64_t elapsed = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << "Time taken by program is : " << fixed << elapsed << setprecision(5); 
     cout << " milisec " << endl; 
@@ -153,9 +153,10 @@ void defragment_all(){
             // move it to the left as much as possible.
             move_a_file(entry, head);
             // update new starting index of free space
-            head += entry.size;
+            int size = byte_to_block(entry.size);
+            head += size;
             // jump over this file to found the next file
-            ind += entry.size;
+            ind += size;
             // decrease count, since we moved a file left.
             count--;
         } else {
@@ -171,7 +172,7 @@ void defragment_all(){
 // move a file to another place block by block.
 // Here, extra buffer block (temp) is used.
 int move_a_file(dtentry_t file, int new_start){
-    int start = file.starting_index, size = file.size;
+    int start = file.starting_index, size = byte_to_block(file.size);
     int id = file.file_id;
     // carry each block from starting index block by block.
     for(int i = 0; i < size; i++){
@@ -192,7 +193,7 @@ int access(int file_id, int offset){
     dtentry_t file = DT[file_id];
     // if no file or offset is too high, return -1.
     if(file.size == 0) return -1;
-    if(offset > file.bytes) return -1;
+    if(offset > file.size) return -1;
 
     auto end = chrono::steady_clock::now();
     access_t += chrono::duration_cast<chrono::microseconds>(end - start_t).count();
@@ -213,7 +214,7 @@ int extend(int file_id, int extension){
     // if there is no such file, return -1.
     if(file.size == 0) return -1;
 
-    int start = file.starting_index, size = file.size;
+    int start = file.starting_index, size = byte_to_block(file.size);
     // first check the contiguous blocks whether they are free or not.
     bool check = seek(start + size, extension);
     // if not;
@@ -252,8 +253,7 @@ int extend(int file_id, int extension){
                 directory_contents + start + size + extension, file_id);
     }
     // update the file size and decrease available blocks.
-    DT[file_id].size = size + extension;
-    DT[file_id].bytes += extension * BLOCK_SIZE;
+    DT[file_id].size += extension * BLOCK_SIZE;
     available_blocks -= extension;
 
     auto end = chrono::steady_clock::now();
@@ -282,8 +282,7 @@ int create(int file_id, int bytes){
     dtentry_t entry;
     entry.file_id = file_id;
     entry.starting_index = starting;
-    entry.size = required_blocks;
-    entry.bytes = bytes;
+    entry.size = bytes;
     DT[file_id] = entry;
     // fill the directory contents and decrease available blocks.
     fill(directory_contents + starting, directory_contents + starting + required_blocks, file_id);
@@ -305,16 +304,15 @@ int shrink(int file_id, int shrinking){
     if(file.size == 0) return -1;
 
     // if offset is more than file size, reject.
-    if(shrinking >= file.size) return -1;
+    if(shrinking >= byte_to_block(file.size)) return -1;
 
-    int last = file.starting_index + file.size;
+    int last = file.starting_index + byte_to_block(file.size);
     int first = last - shrinking;
     // otherwise free the space in directory contents.
     fill(directory_contents + first, directory_contents + last, -1);
     
     // decrease file size in DT and decrease available blocks.
-    DT[file_id].size -= shrinking;
-    DT[file_id].bytes -= shrinking * BLOCK_SIZE;
+    DT[file_id].size -= shrinking * BLOCK_SIZE;
     available_blocks += shrinking;
 
     auto end = chrono::steady_clock::now();

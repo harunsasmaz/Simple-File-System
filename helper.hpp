@@ -5,7 +5,6 @@ typedef struct DTEntry {
     int file_id;
     int starting_index;
     int size; // in terms of number of occupied blocks.
-    int bytes;
 }dtentry_t;
 
 
