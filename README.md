@@ -1,6 +1,6 @@
 # Simple-File-System
 
-## author: Harun SASMAZ
+## Author: Harun Sasmaz
 
 Two different file allocation methods are implemented:
 
@@ -16,9 +16,9 @@ Two different file allocation methods are implemented:
 
 > make
 
-./linked <input_file>
+> ./linked <input_file>
 
-./contiguous <input_file>
+> ./contiguous <input_file>
 
 ## Results
 
