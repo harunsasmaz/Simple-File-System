@@ -8,9 +8,17 @@ Two different file allocation methods are implemented:
 
 2. Linked allocation with File-Allocation Table (FAT)
 
-## Run and Test
+## Compile and Test All Files
 
-> ./run.sh <input_file>
+> ./run.sh
+
+## Compile and Test Independently
+
+> make
+
+./linked <input_file>
+
+./contiguous <input_file>
 
 ## Results
 
