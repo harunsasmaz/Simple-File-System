@@ -104,87 +104,6 @@ int byte_to_block(int bytes){
     return ceil(static_cast<float>(bytes) / static_cast<float>(BLOCK_SIZE));
 }
 
-// search a space to allocate a file, returns -1 when there is no fitting space.
-int find_first_fit(int required_block){
-    // head: starting index for fitting space
-    // ind: points to the current index in the iteration
-    // counter: count of the number of contiguous free blocks
-    // val: val in the current index of directory contents.
-    int head = 0, ind = 0, counter = 0, val;
-    while(ind < NUM_BLOCKS){
-        // if the block is free, increase the count.
-        if((val = directory_contents[ind]) == -1){
-            counter++;
-        } else {
-        // if it is not free, then get the file in that block
-        // and jump over that file.
-            head = ind += DT[val].size;
-            counter = 0;
-        }
-        // if we found enough space, then return starting index of the space.
-        if(counter == required_block) return head;
-        ind++;
-    }
-    // if no space found, then return -1.
-    return -1;
-}
-
-// search if there is enough contiguous space in given range.
-bool seek(int starting_position, int required_block){
-    for(int i = starting_position; i < starting_position + required_block; i++){
-        if(directory_contents[i] != -1) return false;
-    }
-    return true;
-}
-
-// for all the files in DT, shift them left. 
-void defragment_all(){
-    // pointer to file to be moved.
-    dtentry_t entry;
-    // count: number of files to be moved.
-    // head: starting index of free space.
-    // ind: current iteration index.
-    int count = DT.size(), head = 0, ind = 0, id;
-    while(ind < NUM_BLOCKS){
-        // if the block is not free,
-        if((id = directory_contents[ind]) != -1){
-            // get the file in that block.
-            entry = DT[id];
-            // move it to the left as much as possible.
-            move_a_file(entry, head);
-            // update new starting index of free space
-            int size = byte_to_block(entry.size);
-            head += size;
-            // jump over this file to found the next file
-            ind += size;
-            // decrease count, since we moved a file left.
-            count--;
-        } else {
-            // otherwise, increase until find a non-free block.
-            ind++;
-        }
-        // if count is 0, then we moved all files. Break.
-        if(count == 0) break;
-    }
-
-}
-
-// move a file to another place block by block.
-// Here, extra buffer block (temp) is used.
-int move_a_file(dtentry_t file, int new_start){
-    int start = file.starting_index, size = byte_to_block(file.size);
-    int id = file.file_id;
-    // carry each block from starting index block by block.
-    for(int i = 0; i < size; i++){
-        // -1 means that block is freed.
-        directory_contents[start + i] = -1;
-        directory_contents[new_start + i] = id;
-    }
-    // update the new starting index of file.
-    DT[id].starting_index = new_start;
-    return 0;
-}
-
 // returns the block index that contains the specified byte of the file.
 int access(int file_id, int offset){
 
@@ -320,3 +239,84 @@ int shrink(int file_id, int shrinking){
 
     return 0;
 }
+
+// search if there is enough contiguous space in given range.
+bool seek(int starting_position, int required_block){
+    for(int i = starting_position; i < starting_position + required_block; i++){
+        if(directory_contents[i] != -1) return false;
+    }
+    return true;
+}
+
+// search a space to allocate a file, returns -1 when there is no fitting space.
+int find_first_fit(int required_block){
+    // head: starting index for fitting space
+    // ind: points to the current index in the iteration
+    // counter: count of the number of contiguous free blocks
+    // val: val in the current index of directory contents.
+    int head = 0, ind = 0, counter = 0, val;
+    while(ind < NUM_BLOCKS){
+        // if the block is free, increase the count.
+        if(directory_contents[ind] == -1){
+            counter++;
+        } else {
+            // if it is not free, then update the head and reset free block counter.
+            head = ind + 1;
+            counter = 0;
+        }
+        // if we found enough space, then return starting index of the space.
+        if(counter == required_block) return head;
+        ind++;
+    }
+    // if no space found, then return -1.
+    return -1;
+}
+
+// move a file to another place block by block.
+// Here, extra buffer block (temp) is used.
+int move_a_file(dtentry_t file, int new_start){
+    int start = file.starting_index, size = byte_to_block(file.size);
+    int id = file.file_id;
+    // carry each block from starting index block by block.
+    for(int i = 0; i < size; i++){
+        // -1 means that block is freed.
+        directory_contents[start + i] = -1;
+        directory_contents[new_start + i] = id;
+    }
+    // update the new starting index of file.
+    DT[id].starting_index = new_start;
+    return 0;
+}
+
+// for all the files in DT, shift them left. 
+void defragment_all(){
+    // pointer to file to be moved.
+    dtentry_t entry;
+    // count: number of files to be moved.
+    // head: starting index of free space.
+    // ind: current iteration index.
+    int count = DT.size(), head = 0, ind = 0, val;
+    while(ind < NUM_BLOCKS){
+        // if the block is not free,
+        if((val = directory_contents[ind]) != -1){
+            // get the file in that block.
+            entry = DT[val];
+            // move it to the left as much as possible.
+            move_a_file(entry, head);
+            // update new starting index of free space
+            int size = byte_to_block(entry.size);
+            head += size;
+            // jump over this file to found the next file
+            ind += size;
+            // decrease count, since we moved a file left.
+            count--;
+        } else {
+            // otherwise, increase until find a non-free block.
+            ind++;
+        }
+        // if count is 0, then we moved all files. Break.
+        if(count == 0) break;
+    }
+
+}
+
