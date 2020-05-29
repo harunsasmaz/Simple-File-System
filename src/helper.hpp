@@ -20,6 +20,8 @@ int byte_to_block(int bytes);
 void defragment_all();
 // moves a file block by block to the given new starting index.
 int move_a_file(dtentry_t file, int new_start);
+// iteratively searches a file by its starting index
+dtentry_t find_by_index(int index);
 
 
 

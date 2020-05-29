@@ -295,12 +295,12 @@ void defragment_all(){
     // count: number of files to be moved.
     // head: starting index of free space.
     // ind: current iteration index.
-    int count = DT.size(), head = 0, ind = 0, val;
+    int count = DT.size(), head = 0, ind = 0;
     while(ind < NUM_BLOCKS){
         // if the block is not free,
-        if((val = directory_contents[ind]) != -1){
+        if(directory_contents[ind] != -1){
             // get the file in that block.
-            entry = DT[val];
+            entry = find_by_index(ind);
             // move it to the left as much as possible.
             move_a_file(entry, head);
             // update new starting index of free space
@@ -318,5 +318,15 @@ void defragment_all(){
         if(count == 0) break;
     }
 
+}
+
+// iteratively searches a file in DT by its starting index;
+dtentry_t find_by_index(int index){
+
+    dtentry_t res;
+    for(int i = 0; i < DT.size(); i++){
+        if(index == DT[i].starting_index) return DT[i];
+    }
+    return res;
 }
 
